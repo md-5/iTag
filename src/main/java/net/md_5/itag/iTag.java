@@ -8,9 +8,9 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import lombok.Getter;
 import org.bukkit.entity.Player;
@@ -34,9 +34,14 @@ public class iTag extends JavaPlugin implements Listener
     public void onEnable()
     {
         instance = this;
-        entityIdMap = new WeakHashMap<Integer, Player>();
+        entityIdMap = new HashMap<Integer, Player>();
         tagAPI = new TagAPI();
         tagAPI.install( this );
+
+        for ( Player player : getServer().getOnlinePlayers() )
+        {
+            entityIdMap.put( player.getEntityId(), player );
+        }
 
         getServer().getPluginManager().registerEvents( this, this );
         ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, ConnectionSide.SERVER_SIDE, ListenerPriority.NORMAL, Packets.Server.NAMED_ENTITY_SPAWN )
@@ -78,7 +83,14 @@ public class iTag extends JavaPlugin implements Listener
 
     private String getSentName(int sentEntityId, String sentName, Player destinationPlayer)
     {
-        final PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, entityIdMap.get( sentEntityId ), sentName );
+        Player namedPlayer = entityIdMap.get( sentEntityId );
+        if ( namedPlayer == null )
+        {
+            // They probably were dead when we reloaded
+            return sentName;
+        }
+
+        final PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sentName );
         if ( getServer().isPrimaryThread() )
         {
             getServer().getPluginManager().callEvent( event );
