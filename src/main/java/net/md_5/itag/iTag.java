@@ -66,14 +66,20 @@ public class iTag extends JavaPlugin
         }
 
         final PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sentName );
-        Futures.getUnchecked( getServer().getScheduler().callSyncMethod( this, new Callable<Void>()
+        if ( getServer().isPrimaryThread() )
         {
-            public Void call() throws Exception
+            getServer().getPluginManager().callEvent( event );
+        } else
+        {
+            Futures.getUnchecked( getServer().getScheduler().callSyncMethod( this, new Callable<Void>()
             {
-                getServer().getPluginManager().callEvent( event );
-                return null;
-            }
-        } ) );
+                public Void call() throws Exception
+                {
+                    getServer().getPluginManager().callEvent( event );
+                    return null;
+                }
+            } ) );
+        }
 
         return event.getTag().substring( 0, Math.min( event.getTag().length(), 16 ) );
     }
