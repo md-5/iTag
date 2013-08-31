@@ -108,7 +108,7 @@ public class iTag extends JavaPlugin
             {
                 public void run()
                 {
-                    if ( player.isOnline() && forWhom.isOnline() )
+                    if ( player.isOnline() && forWhom.isOnline() && player.getWorld() == forWhom.getWorld() )
                     {
                         forWhom.showPlayer( player );
                     }
