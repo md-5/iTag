@@ -1,9 +1,7 @@
 package net.md_5.itag;
 
-import com.comphenix.protocol.Packets;
+import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.ConnectionSide;
-import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.google.common.base.Preconditions;
@@ -44,14 +42,14 @@ public class iTag extends JavaPlugin implements Listener
         }
 
         getServer().getPluginManager().registerEvents( this, this );
-        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, ConnectionSide.SERVER_SIDE, ListenerPriority.NORMAL, Packets.Server.NAMED_ENTITY_SPAWN )
+        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.NAMED_ENTITY_SPAWN )
         {
             @Override
             public void onPacketSending(PacketEvent event)
             {
-                event.getPacket().getSpecificModifier( String.class ).write( 0, getSentName(
+                event.getPacket().getSpecificModifier( String.class ).write( 1, getSentName(
                         event.getPacket().getSpecificModifier( int.class ).read( 0 ),
-                        event.getPacket().getSpecificModifier( String.class ).read( 0 ),
+                        event.getPacket().getSpecificModifier( String.class ).read( 1 ),
                         event.getPlayer() ) );
             }
         } );
