@@ -4,12 +4,11 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Futures;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -47,10 +46,8 @@ public class iTag extends JavaPlugin implements Listener
             @Override
             public void onPacketSending(PacketEvent event)
             {
-                event.getPacket().getSpecificModifier( String.class ).write( 1, getSentName(
-                        event.getPacket().getSpecificModifier( int.class ).read( 0 ),
-                        event.getPacket().getSpecificModifier( String.class ).read( 1 ),
-                        event.getPlayer() ) );
+                WrappedGameProfile profile = event.getPacket().getGameProfiles().read( 0 );
+                event.getPacket().getGameProfiles().write( 0, profile.withName( getSentName( event.getPacket().getIntegers().read( 0 ), profile.getName(), event.getPlayer() ) ) );
             }
         } );
     }
@@ -81,6 +78,8 @@ public class iTag extends JavaPlugin implements Listener
 
     private String getSentName(int sentEntityId, String sentName, Player destinationPlayer)
     {
+        Preconditions.checkState( getServer().isPrimaryThread(), "Can only process events on main thread." );
+
         Player namedPlayer = entityIdMap.get( sentEntityId );
         if ( namedPlayer == null )
         {
@@ -88,21 +87,8 @@ public class iTag extends JavaPlugin implements Listener
             return sentName;
         }
 
-        final PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sentName );
-        if ( getServer().isPrimaryThread() )
-        {
-            getServer().getPluginManager().callEvent( event );
-        } else
-        {
-            Futures.getUnchecked( getServer().getScheduler().callSyncMethod( this, new Callable<Void>()
-            {
-                public Void call() throws Exception
-                {
-                    getServer().getPluginManager().callEvent( event );
-                    return null;
-                }
-            } ) );
-        }
+        PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sentName );
+        getServer().getPluginManager().callEvent( event );
 
         return event.getTag().substring( 0, Math.min( event.getTag().length(), 16 ) );
     }
