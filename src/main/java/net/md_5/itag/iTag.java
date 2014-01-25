@@ -32,8 +32,7 @@ public class iTag extends JavaPlugin implements Listener
     {
         instance = this;
         entityIdMap = new HashMap<Integer, Player>();
-        tagAPI = new TagAPI();
-        tagAPI.install( this );
+        tagAPI = new TagAPI( this );
 
         for ( Player player : getServer().getOnlinePlayers() )
         {
