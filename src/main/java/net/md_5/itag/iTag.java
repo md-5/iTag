@@ -67,7 +67,6 @@ public class iTag extends JavaPlugin implements Listener
     public void onDisable()
     {
         ProtocolLibrary.getProtocolManager().removePacketListeners( this );
-        tagAPI.uninstall();
 
         entityIdMap.clear();
         entityIdMap = null;
