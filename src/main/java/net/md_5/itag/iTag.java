@@ -9,6 +9,7 @@ import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +17,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.kitteh.tag.AsyncPlayerReceiveNameTagEvent;
 import org.kitteh.tag.PlayerReceiveNameTagEvent;
 import org.kitteh.tag.TagAPI;
 
@@ -26,6 +28,10 @@ public class iTag extends JavaPlugin implements Listener
     private static iTag instance;
     private TagAPI tagAPI;
     private Map<Integer, Player> entityIdMap;
+    private static final int[] uuidSplit = new int[]
+    {
+        0, 8, 12, 16, 20, 32
+    };
 
     @Override
     public void onEnable()
@@ -45,8 +51,7 @@ public class iTag extends JavaPlugin implements Listener
             @Override
             public void onPacketSending(PacketEvent event)
             {
-                WrappedGameProfile profile = event.getPacket().getGameProfiles().read( 0 );
-                event.getPacket().getGameProfiles().write( 0, profile.withName( getSentName( event.getPacket().getIntegers().read( 0 ), profile.getName(), event.getPlayer() ) ) );
+                event.getPacket().getGameProfiles().write( 0, getSentName( event.getPacket().getIntegers().read( 0 ), event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
             }
         } );
     }
@@ -74,7 +79,7 @@ public class iTag extends JavaPlugin implements Listener
         instance = null;
     }
 
-    private String getSentName(int sentEntityId, String sentName, Player destinationPlayer)
+    private WrappedGameProfile getSentName(int sentEntityId, WrappedGameProfile sent, Player destinationPlayer)
     {
         Preconditions.checkState( getServer().isPrimaryThread(), "Can only process events on main thread." );
 
@@ -82,13 +87,21 @@ public class iTag extends JavaPlugin implements Listener
         if ( namedPlayer == null )
         {
             // They probably were dead when we reloaded
-            return sentName;
+            return sent;
         }
 
-        PlayerReceiveNameTagEvent event = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sentName );
-        getServer().getPluginManager().callEvent( event );
+        PlayerReceiveNameTagEvent oldEvent = new PlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, sent.getName() );
+        getServer().getPluginManager().callEvent( oldEvent );
 
-        return event.getTag().substring( 0, Math.min( event.getTag().length(), 16 ) );
+        StringBuilder builtUUID = new StringBuilder();
+        for ( int i = 0; i < uuidSplit.length - 1; i++ )
+        {
+            builtUUID.append( sent.getId().substring( uuidSplit[i], uuidSplit[i + 1] ) ).append( "-" );
+        }
+        AsyncPlayerReceiveNameTagEvent newEvent = new AsyncPlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, oldEvent.getTag(), UUID.fromString( builtUUID.toString() ) );
+        getServer().getPluginManager().callEvent( newEvent );
+
+        return new WrappedGameProfile( newEvent.getUUID().toString().replace( "-", "" ), newEvent.getTag().substring( 0, Math.min( oldEvent.getTag().length(), 16 ) ) );
     }
 
     public void refreshPlayer(Player player)
