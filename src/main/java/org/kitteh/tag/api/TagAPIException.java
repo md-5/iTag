@@ -10,8 +10,8 @@ public class TagAPIException extends RuntimeException
         super( message );
     }
 
-    public TagAPIException(String message, Throwable throwable)
+    public TagAPIException(String message, Throwable cause)
     {
-        super( message, throwable );
+        super( message, cause );
     }
 }
