@@ -36,6 +36,7 @@ public class AsyncPlayerReceiveNameTagEvent extends Event
         this.namedPlayer = namedPlayer;
         this.tag = initialName;
         this.tagModified = namedPlayer.getName().equals( initialName );
+        this.UUID = uuid;
     }
 
     public boolean setTag(String tag)
