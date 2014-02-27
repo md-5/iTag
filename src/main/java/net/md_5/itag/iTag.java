@@ -109,7 +109,7 @@ public class iTag extends JavaPlugin implements Listener
         Preconditions.checkState( isEnabled(), "Not Enabled!" );
         Preconditions.checkNotNull( player, "player" );
 
-        for ( Player playerFor : getServer().getOnlinePlayers() )
+        for ( Player playerFor : player.getWorld().getPlayers() )
         {
             refreshPlayer( player, playerFor );
         }
@@ -121,17 +121,14 @@ public class iTag extends JavaPlugin implements Listener
         Preconditions.checkNotNull( player, "player" );
         Preconditions.checkNotNull( forWhom, "forWhom" );
 
-        if ( player != forWhom && forWhom.canSee( player ) )
+        if ( player != forWhom && player.getWorld() == forWhom.getWorld() && forWhom.canSee( player ) )
         {
             forWhom.hidePlayer( player );
             getServer().getScheduler().scheduleSyncDelayedTask( this, new Runnable()
             {
                 public void run()
                 {
-                    if ( player.isOnline() && forWhom.isOnline() )
-                    {
-                        forWhom.showPlayer( player );
-                    }
+                    forWhom.showPlayer( player );
                 }
             }, 2 );
         }
