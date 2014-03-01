@@ -126,16 +126,25 @@ public class TagAPI extends PluginBase implements PluginLoader
 
     public static void refreshPlayer(Player player)
     {
-        iTag.getInstance().refreshPlayer( player );
+        if ( iTag.getInstance() != null )
+        {
+            iTag.getInstance().refreshPlayer( player );
+        }
     }
 
     public static void refreshPlayer(Player player, Player forWhom)
     {
-        iTag.getInstance().refreshPlayer( player, forWhom );
+        if ( iTag.getInstance() != null )
+        {
+            iTag.getInstance().refreshPlayer( player, forWhom );
+        }
     }
 
     public static void refreshPlayer(Player player, Set<Player> forWhom)
     {
-        iTag.getInstance().refreshPlayer( player, forWhom );
+        if ( iTag.getInstance() != null )
+        {
+            iTag.getInstance().refreshPlayer( player, forWhom );
+        }
     }
 }
