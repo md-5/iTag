@@ -94,9 +94,15 @@ public class iTag extends JavaPlugin implements Listener
         getServer().getPluginManager().callEvent( oldEvent );
 
         StringBuilder builtUUID = new StringBuilder();
-        for ( int i = 0; i < uuidSplit.length - 1; i++ )
+        if ( !sent.getId().contains( "-" ) )
         {
-            builtUUID.append( sent.getId().substring( uuidSplit[i], uuidSplit[i + 1] ) ).append( "-" );
+            for ( int i = 0; i < uuidSplit.length - 1; i++ )
+            {
+                builtUUID.append( sent.getId().substring( uuidSplit[i], uuidSplit[i + 1] ) ).append( "-" );
+            }
+        } else
+        {
+            builtUUID.append( sent.getId() );
         }
         AsyncPlayerReceiveNameTagEvent newEvent = new AsyncPlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, oldEvent.getTag(), UUID.fromString( builtUUID.toString() ) );
         getServer().getPluginManager().callEvent( newEvent );
