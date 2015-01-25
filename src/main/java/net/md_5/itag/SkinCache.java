@@ -26,9 +26,7 @@ public class SkinCache {
     }
     
     public void changeSkin(Player player, WrappedGameProfile profile) {
-    	if (!player.getName().equals(profile.getName())) {
-    		profile.getProperties().putAll("textures", getSkin(profile.getName()));
-    	}
+    	profile.getProperties().putAll("textures", getSkin(profile.getName()));
     }
     
     public Collection<WrappedSignedProperty> getSkin(String playerName) {
