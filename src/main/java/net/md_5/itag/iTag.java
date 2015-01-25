@@ -48,15 +48,18 @@ public class iTag extends JavaPlugin implements Listener
             {
             	int clientVersion = ProtocolLibrary.getProtocolManager().getProtocolVersion(event.getPlayer());
             	if (clientVersion < 6 && event.getPacket().getType() == PacketType.Play.Server.NAMED_ENTITY_SPAWN) {
-            		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
-	                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
-	                cache.changeSkin(event.getPlayer(), profile);
+            		WrappedGameProfile namedProfile = getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() );
+            		if (!namedProfile.getName().equals(event.getPacket().getGameProfiles().read(0).getName())) {
+		                cache.changeSkin(event.getPlayer(), namedProfile);
+	            		event.getPacket().getGameProfiles().write( 0, namedProfile);
+	            	}
             	} else if (clientVersion == 47 && Bukkit.getVersion().contains("1.7") && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
-            		if (!event.getPlayer().getName().equals(event.getPacket().getGameProfiles().read(0).getName())) {
-	            		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
-		                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
-		                cache.changeSkin(event.getPlayer(), profile);
-            		}
+            		WrappedGameProfile namedProfile = getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() );
+            		WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
+            		if (!namedProfile.getName().equals(profile) && event.getPlayer().getName().equals(profile)) {
+		                cache.changeSkin(event.getPlayer(), namedProfile);
+	            		event.getPacket().getGameProfiles().write( 0, namedProfile);
+	            	}
             	} else if (clientVersion == 47 && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
             		if (event.getPacket().getPlayerInfoAction().getValues().get(0) == PlayerInfoAction.ADD_PLAYER) {
     	            	StructureModifier<List<PlayerInfoData>> infos = event.getPacket().getPlayerInfoDataLists();
@@ -68,7 +71,7 @@ public class iTag extends JavaPlugin implements Listener
     	            		
     	            		WrappedGameProfile profile = getSentName(data.getProfile(), event.getPlayer() );
     	            		
-    	            		if (!profile.getName().endsWith(data.getProfile().getName()) && !event.getPlayer().getName().equals(data.getProfile().getName())) {
+    	            		if (!profile.getName().equals(data.getProfile().getName()) && !event.getPlayer().getName().equals(data.getProfile().getName())) {
     	            			cache.changeSkin(event.getPlayer(), profile);
     		                    
     	            			datas.add(new PlayerInfoData(profile, data.getPing(), data.getGameMode(), data.getDisplayName()));
