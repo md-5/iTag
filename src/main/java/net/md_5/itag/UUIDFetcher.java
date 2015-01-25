@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ public class UUIDFetcher implements Callable<Map<String, UUID>> {
     private final JSONParser jsonParser = new JSONParser();
     private final List<String> names;
     private final boolean rateLimiting;
+    private static Map<String, UUID> cachedUUIDs = new HashMap<String, UUID>();
     
     public UUIDFetcher(List<String> names, boolean rateLimiting) {
         this.names = ImmutableList.copyOf(names);
@@ -41,9 +43,18 @@ public class UUIDFetcher implements Callable<Map<String, UUID>> {
     public Map<String, UUID> call() throws Exception {
         Map<String, UUID> uuidMap = new HashMap<String, UUID>();
         int requests = (int) Math.ceil(names.size() / PROFILES_PER_REQUEST);
+        List<String> leftOverNames = new ArrayList<String>();
+        for (String name : names) {
+        	UUID id = cachedUUIDs.get(name);
+        	if (id != null) {
+        		uuidMap.put(name, id);
+        	} else {
+        		leftOverNames.add(name);
+        	}
+        }
         for (int i = 0; i < requests; i++) {
             HttpURLConnection connection = createConnection();
-            String body = JSONArray.toJSONString(names.subList(i * 100, Math.min((i + 1) * 100, names.size())));
+            String body = JSONArray.toJSONString(leftOverNames.subList(i * 100, Math.min((i + 1) * 100, leftOverNames.size())));
             writeBody(connection, body);
             JSONArray array = (JSONArray) jsonParser.parse(new InputStreamReader(connection.getInputStream()));
             for (Object profile : array) {
@@ -52,6 +63,7 @@ public class UUIDFetcher implements Callable<Map<String, UUID>> {
                 String name = (String) jsonProfile.get("name");
                 UUID uuid = UUIDFetcher.getUUID(id);
                 uuidMap.put(name, uuid);
+                cachedUUIDs.put(name, uuid);
             }
             if (rateLimiting && i != requests - 1) {
                 Thread.sleep(100L);
