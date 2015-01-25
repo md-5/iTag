@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
+import org.bukkit.entity.Player;
 
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.WrappedSignedProperty;
@@ -22,6 +23,12 @@ public class SkinCache {
     	this.textures = new HashMap<UUID, Collection<WrappedSignedProperty>>();
     	this.sessionService = getSessionService();
     	this.fillMethod = getFillMethod(sessionService);
+    }
+    
+    public void changeSkin(Player player, WrappedGameProfile profile) {
+    	if (!player.getName().equals(profile.getName())) {
+    		profile.getProperties().putAll("textures", getSkin(profile.getName()));
+    	}
     }
     
     public Collection<WrappedSignedProperty> getSkin(String playerName) {

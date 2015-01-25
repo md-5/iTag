@@ -50,12 +50,12 @@ public class iTag extends JavaPlugin implements Listener
             	if (clientVersion < 6 && event.getPacket().getType() == PacketType.Play.Server.NAMED_ENTITY_SPAWN) {
             		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
 	                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
-	                profile.getProperties().putAll("textures", cache.getSkin(profile.getName()));
+	                cache.changeSkin(event.getPlayer(), profile);
             	} else if (clientVersion == 47 && Bukkit.getVersion().contains("1.7") && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
             		if (!event.getPlayer().getName().equals(event.getPacket().getGameProfiles().read(0).getName())) {
 	            		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
 		                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
-		                profile.getProperties().putAll("textures", cache.getSkin(profile.getName()));
+		                cache.changeSkin(event.getPlayer(), profile);
             		}
             	} else if (clientVersion == 47 && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
             		if (event.getPacket().getPlayerInfoAction().getValues().get(0) == PlayerInfoAction.ADD_PLAYER) {
@@ -69,8 +69,7 @@ public class iTag extends JavaPlugin implements Listener
     	            		WrappedGameProfile profile = getSentName(data.getProfile(), event.getPlayer() );
     	            		
     	            		if (!profile.getName().endsWith(data.getProfile().getName()) && !event.getPlayer().getName().equals(data.getProfile().getName())) {
-    	            			Collection<WrappedSignedProperty> properties = cache.getSkin(profile.getName());
-    		                    profile.getProperties().putAll("textures", properties);
+    	            			cache.changeSkin(event.getPlayer(), profile);
     		                    
     	            			datas.add(new PlayerInfoData(profile, data.getPing(), data.getGameMode(), data.getDisplayName()));
     	            		} else {
