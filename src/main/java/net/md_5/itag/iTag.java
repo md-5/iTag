@@ -1,89 +1,103 @@
 package net.md_5.itag;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.kitteh.tag.AsyncPlayerReceiveNameTagEvent;
+import org.kitteh.tag.PlayerReceiveNameTagEvent;
+
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.reflect.StructureModifier;
+import com.comphenix.protocol.utility.MinecraftProtocolVersion;
+import com.comphenix.protocol.utility.MinecraftVersion;
+import com.comphenix.protocol.wrappers.EnumWrappers.PlayerInfoAction;
+import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
+import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import com.google.common.base.Preconditions;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import lombok.Getter;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.kitteh.tag.AsyncPlayerReceiveNameTagEvent;
-import org.kitteh.tag.PlayerReceiveNameTagEvent;
-import org.kitteh.tag.TagAPI;
 
 public class iTag extends JavaPlugin implements Listener
 {
-
-    @Getter
     private static iTag instance;
-    private TagAPI tagAPI;
-    private Map<Integer, Player> entityIdMap;
     private static final int[] uuidSplit = new int[]
     {
         0, 8, 12, 16, 20, 32
     };
-
-    @Override
+    private SkinCache cache;
+    
+    //@Override
     public void onEnable()
     {
         instance = this;
-        entityIdMap = new HashMap<Integer, Player>();
-        tagAPI = new TagAPI( this );
-
-        for ( Player player : getServer().getOnlinePlayers() )
-        {
-            entityIdMap.put( player.getEntityId(), player );
-        }
+        this.cache = new SkinCache();
 
         getServer().getPluginManager().registerEvents( this, this );
-        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.NAMED_ENTITY_SPAWN )
+        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.PLAYER_INFO, PacketType.Play.Server.NAMED_ENTITY_SPAWN)
         {
-            @Override
             public void onPacketSending(PacketEvent event)
             {
-                event.getPacket().getGameProfiles().write( 0, getSentName( event.getPacket().getIntegers().read( 0 ), event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
-            }
+            	int clientVersion = ProtocolLibrary.getProtocolManager().getProtocolVersion(event.getPlayer());
+            	if (clientVersion < 6 && event.getPacket().getType() == PacketType.Play.Server.NAMED_ENTITY_SPAWN) {
+            		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
+	                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
+	                profile.getProperties().putAll("textures", cache.getSkin(profile.getName()));
+            	} else if (clientVersion == 47 && Bukkit.getVersion().contains("1.7") && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
+            		if (!event.getPlayer().getName().equals(event.getPacket().getGameProfiles().read(0).getName())) {
+	            		event.getPacket().getGameProfiles().write( 0, getSentName(event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
+		                WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
+		                profile.getProperties().putAll("textures", cache.getSkin(profile.getName()));
+            		}
+            	} else if (clientVersion == 47 && event.getPacket().getType() == PacketType.Play.Server.PLAYER_INFO) {
+            		if (event.getPacket().getPlayerInfoAction().getValues().get(0) == PlayerInfoAction.ADD_PLAYER) {
+    	            	StructureModifier<List<PlayerInfoData>> infos = event.getPacket().getPlayerInfoDataLists();
+    	            	List<PlayerInfoData> datas = new ArrayList<PlayerInfoData>();
+    	            	for (PlayerInfoData data : infos.read(0)) {
+    	            		if (data == null || data.getProfile() == null || Bukkit.getPlayer(data.getProfile().getUUID()) == null) {
+    	            			continue;
+    	            		}
+    	            		
+    	            		WrappedGameProfile profile = getSentName(data.getProfile(), event.getPlayer() );
+    	            		
+    	            		if (!profile.getName().endsWith(data.getProfile().getName()) && !event.getPlayer().getName().equals(data.getProfile().getName())) {
+    	            			Collection<WrappedSignedProperty> properties = cache.getSkin(profile.getName());
+    		                    profile.getProperties().putAll("textures", properties);
+    		                    
+    	            			datas.add(new PlayerInfoData(profile, data.getPing(), data.getGameMode(), data.getDisplayName()));
+    	            		} else {
+    	            			datas.add(data);
+    	            		}
+    	            		
+    	            	}
+    	            	infos.write(0, datas);
+    	            	
+                	}
+            	}
+            }	
         } );
     }
 
-    @EventHandler
-    public void onJoin(PlayerJoinEvent event)
-    {
-        entityIdMap.put( event.getPlayer().getEntityId(), event.getPlayer() );
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event)
-    {
-        entityIdMap.remove( event.getPlayer().getEntityId() );
-    }
-
-    @Override
+    //@Override
     public void onDisable()
     {
         ProtocolLibrary.getProtocolManager().removePacketListeners( this );
-
-        entityIdMap.clear();
-        entityIdMap = null;
-        tagAPI = null;
         instance = null;
     }
 
-    private WrappedGameProfile getSentName(int sentEntityId, WrappedGameProfile sent, Player destinationPlayer)
+    private WrappedGameProfile getSentName(WrappedGameProfile sent, Player destinationPlayer)
     {
         Preconditions.checkState( getServer().isPrimaryThread(), "Can only process events on main thread." );
 
-        Player namedPlayer = entityIdMap.get( sentEntityId );
+        Player namedPlayer = Bukkit.getPlayer(sent.getUUID());
         if ( namedPlayer == null )
         {
             // They probably were dead when we reloaded
@@ -106,22 +120,21 @@ public class iTag extends JavaPlugin implements Listener
         }
         AsyncPlayerReceiveNameTagEvent newEvent = new AsyncPlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, oldEvent.getTag(), UUID.fromString( builtUUID.toString() ) );
         getServer().getPluginManager().callEvent( newEvent );
-
         return new WrappedGameProfile( newEvent.getUUID(), newEvent.getTag().substring( 0, Math.min( newEvent.getTag().length(), 16 ) ) );
     }
 
-    public void refreshPlayer(Player player)
+    public void refreshiTagPlayer(Player player)
     {
         Preconditions.checkState( isEnabled(), "Not Enabled!" );
         Preconditions.checkNotNull( player, "player" );
 
         for ( Player playerFor : player.getWorld().getPlayers() )
         {
-            refreshPlayer( player, playerFor );
+        	refreshiTagPlayer( player, playerFor );
         }
     }
 
-    public void refreshPlayer(final Player player, final Player forWhom)
+    public void refreshiTagPlayer(final Player player, final Player forWhom)
     {
         Preconditions.checkState( isEnabled(), "Not Enabled!" );
         Preconditions.checkNotNull( player, "player" );
@@ -135,12 +148,13 @@ public class iTag extends JavaPlugin implements Listener
                 public void run()
                 {
                     forWhom.showPlayer( player );
+                    
                 }
             }, 2 );
         }
     }
 
-    public void refreshPlayer(Player player, Set<Player> forWhom)
+    public void refreshiTagPlayer(Player player, Set<Player> forWhom)
     {
         Preconditions.checkState( isEnabled(), "Not Enabled!" );
         Preconditions.checkNotNull( player, "player" );
@@ -148,7 +162,11 @@ public class iTag extends JavaPlugin implements Listener
 
         for ( Player playerFor : forWhom )
         {
-            refreshPlayer( player, playerFor );
+        	refreshiTagPlayer( player, playerFor );
         }
+    }
+    
+    public static iTag getInstance() {
+    	return instance;
     }
 }
