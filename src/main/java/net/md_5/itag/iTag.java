@@ -4,14 +4,14 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.EnumWrappers.PlayerInfoAction;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
+import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.google.common.base.Preconditions;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
@@ -57,15 +57,14 @@ public class iTag extends JavaPlugin implements Listener
             public void onPacketSending(PacketEvent event)
             {
                 if (event.getPacket().getPlayerInfoAction().read(0) != PlayerInfoAction.ADD_PLAYER) return;
-				
-			    List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
-				List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
-				for (PlayerInfoData playerInfoData : playerInfoDataList) {
-				    if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) newPlayerInfoDataList.add(playerInfoData); //Unknown Player
-				    PlayerInfoData newPlayerInfoData = getSentName(getEntityId(playerInfoData.getProfile()), playerInfoData.getProfile(), event.getPlayer());
-				    newPlayerInfoDataList.add(newPlayerInfoData);
-				}
-				event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
+		List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
+		List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
+		for (PlayerInfoData playerInfoData : playerInfoDataList) {
+		    if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) newPlayerInfoDataList.add(playerInfoData); //Unknown Player
+		    PlayerInfoData newPlayerInfoData = getSentName(getEntityId(playerInfoData.getProfile()), playerInfoData.getProfile(), event.getPlayer());
+		    newPlayerInfoDataList.add(newPlayerInfoData);
+		}
+		event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
             }
         } );
     }
