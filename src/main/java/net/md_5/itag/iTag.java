@@ -57,20 +57,20 @@ public class iTag extends JavaPlugin implements Listener
             public void onPacketSending(PacketEvent event)
             {
                 if (event.getPacket().getPlayerInfoAction().read(0) != PlayerInfoAction.ADD_PLAYER) return;
-		List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
-		List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
-		for (PlayerInfoData playerInfoData : playerInfoDataList) {
-		    if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) newPlayerInfoDataList.add(playerInfoData); //Unknown Player
-		    PlayerInfoData newPlayerInfoData = getSentName(getEntityId(playerInfoData.getProfile()), playerInfoData.getProfile(), event.getPlayer());
-		    newPlayerInfoDataList.add(newPlayerInfoData);
-		}
-		event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
+                List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
+                List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
+                for (PlayerInfoData playerInfoData : playerInfoDataList) {
+                    Player player = Bukkit.getPlayer(playerInfoData.getProfile().getUUID());
+                    if (playerInfoData == null || playerInfoData.getProfile() == null || player == null) { //Unknown Player
+                        newPlayerInfoDataList.add(playerInfoData);
+                        continue;
+                    }
+                    PlayerInfoData newPlayerInfoData = getSentName(player.getEntityId(), playerInfoData.getProfile(), event.getPlayer());
+                    newPlayerInfoDataList.add(newPlayerInfoData);
+                }
+                event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
             }
         } );
-    }
-    
-    private static int getEntityId(WrappedGameProfile profile) {
-        Player player = Bukkit.getPlayer(profile.getUUID()).getEntityId();
     }
 
     @EventHandler
