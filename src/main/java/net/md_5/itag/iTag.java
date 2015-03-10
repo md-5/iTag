@@ -60,11 +60,11 @@ public class iTag extends JavaPlugin implements Listener
                 List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
                 List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
                 for (PlayerInfoData playerInfoData : playerInfoDataList) {
-                    Player player = Bukkit.getPlayer(playerInfoData.getProfile().getUUID());
-                    if (playerInfoData == null || playerInfoData.getProfile() == null || player == null) { //Unknown Player
+                    if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) { //Unknown Player
                         newPlayerInfoDataList.add(playerInfoData);
                         continue;
                     }
+                    Player player = Bukkit.getPlayer(playerInfoData.getProfile().getUUID());
                     PlayerInfoData newPlayerInfoData = getSentName(player.getEntityId(), playerInfoData.getProfile(), event.getPlayer());
                     newPlayerInfoDataList.add(newPlayerInfoData);
                 }
