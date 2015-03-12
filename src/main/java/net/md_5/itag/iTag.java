@@ -57,7 +57,7 @@ public class iTag extends JavaPlugin implements Listener
             public void onPacketSending(PacketEvent event)
             {
                 if (event.getPacket().getPlayerInfoAction().read(0) != PlayerInfoAction.ADD_PLAYER) return;
-                List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<>();	
+                List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<PlayerInfoData>();	
                 List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
                 for (PlayerInfoData playerInfoData : playerInfoDataList) {
                     if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) { //Unknown Player
@@ -65,7 +65,7 @@ public class iTag extends JavaPlugin implements Listener
                         continue;
                     }
                     Player player = Bukkit.getPlayer(playerInfoData.getProfile().getUUID());
-                    PlayerInfoData newPlayerInfoData = getSentName(player.getEntityId(), playerInfoData.getProfile(), event.getPlayer());
+                    PlayerInfoData newPlayerInfoData = new PlayerInfoData(getSentName(player.getEntityId(), playerInfoData.getProfile(), event.getPlayer()), playerInfoData.getPing(), playerInfoData.getGameMode(), playerInfoData.getDisplayName());
                     newPlayerInfoDataList.add(newPlayerInfoData);
                 }
                 event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
