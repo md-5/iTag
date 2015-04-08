@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers.PlayerInfoAction;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
+import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,6 +26,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.kitteh.tag.AsyncPlayerReceiveNameTagEvent;
 import org.kitteh.tag.PlayerReceiveNameTagEvent;
 import org.kitteh.tag.TagAPI;
+import net.md_5.itag.profiles.TextureHelper;
 
 public class iTag extends JavaPlugin implements Listener
 {
@@ -50,36 +53,52 @@ public class iTag extends JavaPlugin implements Listener
         }
 
         getServer().getPluginManager().registerEvents( this, this );
-        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.PLAYER_INFO )
+        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.PLAYER_INFO, PacketType.Play.Server.NAMED_ENTITY_SPAWN )
         {
             @Override
             public void onPacketSending(PacketEvent event)
             {
-                if ( event.getPacket().getPlayerInfoAction().read( 0 ) != PlayerInfoAction.ADD_PLAYER )
-                {
-                    return;
+                switch (Versions.getSupportedVersion(event)) {
+                    case v1_8_0 :
+                        do18(event);
+                        return;
+                    case v1_7_10 :
+                        do170(event);
+                        return;
+                    default :
+                        getServer().getLogger().severe("[iTag] Unsupported Version");
+                        getServer().getLogger().severe("[iTag] Shutting Down");
+                        ProtocolLibrary.getProtocolManager().removePacketListener(this);
+                        iTag.this.setEnabled(false);
+                        return;
                 }
-
-                List<PlayerInfoData> newPlayerInfo = new ArrayList<PlayerInfoData>();
-                for ( PlayerInfoData playerInfo : event.getPacket().getPlayerInfoDataLists().read( 0 ) )
-                {
-                    Player player;
-                    if ( playerInfo == null || playerInfo.getProfile() == null || ( player = getServer().getPlayer( playerInfo.getProfile().getUUID() ) ) == null )
-                    {
-                        // Unknown Player
-                        newPlayerInfo.add( playerInfo );
-                        continue;
-                    }
-
-                    newPlayerInfo.add( new PlayerInfoData(
-                            getSentName( player.getEntityId(), playerInfo.getProfile(), event.getPlayer() ),
-                            playerInfo.getPing(), playerInfo.getGameMode(), playerInfo.getDisplayName()
-                    ) );
-                }
-
-                event.getPacket().getPlayerInfoDataLists().write( 0, newPlayerInfo );
             }
         } );
+    }
+    
+    public void do18(PacketEvent event) {
+        if (!event.getPacketType().equals(PacketType.Play.Server.PLAYER_INFO)) return;
+        if (event.getPacket().getPlayerInfoAction().read(0) != PlayerInfoAction.ADD_PLAYER) return;
+        List<PlayerInfoData> newPlayerInfoDataList = new ArrayList<PlayerInfoData>();	
+        List<PlayerInfoData> playerInfoDataList = event.getPacket().getPlayerInfoDataLists().read(0);
+        for (PlayerInfoData playerInfoData : playerInfoDataList) {
+            if (playerInfoData == null || playerInfoData.getProfile() == null || Bukkit.getPlayer(playerInfoData.getProfile().getUUID()) == null) { //Unknown Player
+                newPlayerInfoDataList.add(playerInfoData);
+                continue;
+            }
+            Player player = Bukkit.getPlayer(playerInfoData.getProfile().getUUID());
+            PlayerInfoData newPlayerInfoData = new PlayerInfoData(getSentName(player.getEntityId(), playerInfoData.getProfile(), event.getPlayer()), playerInfoData.getPing(), playerInfoData.getGameMode(), playerInfoData.getDisplayName());
+            newPlayerInfoDataList.add(newPlayerInfoData);
+        }
+        event.getPacket().getPlayerInfoDataLists().write(0, newPlayerInfoDataList);
+    }
+    
+    public void do170(PacketEvent event) {
+        if (!event.getPacketType().equals(PacketType.Play.Server.NAMED_ENTITY_SPAWN)) return;
+        int playerId = event.getPacket().getIntegers().read(0);
+        WrappedGameProfile profile = event.getPacket().getGameProfiles().read(0);
+        WrappedGameProfile toSend = getSentName(playerId, profile, event.getPlayer());
+        event.getPacket().getGameProfiles().write(0, toSend);
     }
 
     @EventHandler
@@ -133,7 +152,12 @@ public class iTag extends JavaPlugin implements Listener
         AsyncPlayerReceiveNameTagEvent newEvent = new AsyncPlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, oldEvent.getTag(), UUID.fromString( builtUUID.toString() ) );
         getServer().getPluginManager().callEvent( newEvent );
 
-        return new WrappedGameProfile( newEvent.getUUID(), newEvent.getTag().substring( 0, Math.min( newEvent.getTag().length(), 16 ) ) );
+        
+        WrappedGameProfile profile = new WrappedGameProfile( newEvent.getUUID(), newEvent.getTag().substring( 0, Math.min( newEvent.getTag().length(), 16 ) ) );
+        WrappedSignedProperty property = TextureHelper.getSkin(newEvent.getUUID());
+        profile.getProperties().get("textures").clear();
+        profile.getProperties().get("textures").add(property);
+        return profile;
     }
 
     public void refreshPlayer(Player player)
