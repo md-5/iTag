@@ -90,7 +90,7 @@ public class TagAPI extends PluginBase implements PluginLoader
             description = new PluginDescriptionFile( new StringReader( yaml ) );
         } catch ( InvalidDescriptionException ex )
         {
-            Throwables.propagate( ex );
+            throw Throwables.propagate( ex );
         }
 
         plugins.add( this );
@@ -115,13 +115,10 @@ public class TagAPI extends PluginBase implements PluginLoader
             Field field = clazz.getDeclaredField( name );
             field.setAccessible( true );
             return field.get( owner );
-        } catch ( Throwable t )
+        } catch ( Exception ex )
         {
-            Throwables.propagate( t );
+            throw Throwables.propagate( ex );
         }
-
-        // Impossible
-        return null;
     }
 
     public static void refreshPlayer(Player player)
