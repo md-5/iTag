@@ -4,9 +4,13 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.wrappers.EnumWrappers.PlayerInfoAction;
+import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.google.common.base.Preconditions;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -46,12 +50,34 @@ public class iTag extends JavaPlugin implements Listener
         }
 
         getServer().getPluginManager().registerEvents( this, this );
-        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.NAMED_ENTITY_SPAWN )
+        ProtocolLibrary.getProtocolManager().addPacketListener( new PacketAdapter( this, PacketType.Play.Server.PLAYER_INFO )
         {
             @Override
             public void onPacketSending(PacketEvent event)
             {
-                event.getPacket().getGameProfiles().write( 0, getSentName( event.getPacket().getIntegers().read( 0 ), event.getPacket().getGameProfiles().read( 0 ), event.getPlayer() ) );
+                if ( event.getPacket().getPlayerInfoAction().read( 0 ) != PlayerInfoAction.ADD_PLAYER )
+                {
+                    return;
+                }
+
+                List<PlayerInfoData> newPlayerInfo = new ArrayList<PlayerInfoData>();
+                for ( PlayerInfoData playerInfo : event.getPacket().getPlayerInfoDataLists().read( 0 ) )
+                {
+                    Player player;
+                    if ( playerInfo == null || playerInfo.getProfile() == null || ( player = getServer().getPlayer( playerInfo.getProfile().getUUID() ) ) == null )
+                    {
+                        // Unknown Player
+                        newPlayerInfo.add( playerInfo );
+                        continue;
+                    }
+
+                    newPlayerInfo.add( new PlayerInfoData(
+                            getSentName( player.getEntityId(), playerInfo.getProfile(), event.getPlayer() ),
+                            playerInfo.getPing(), playerInfo.getGameMode(), playerInfo.getDisplayName()
+                    ) );
+                }
+
+                event.getPacket().getPlayerInfoDataLists().write( 0, newPlayerInfo );
             }
         } );
     }

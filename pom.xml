@@ -4,7 +4,7 @@
 
     <groupId>net.md-5</groupId>
     <artifactId>iTag</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>iTag</name>
@@ -16,19 +16,13 @@
 
     <repositories>
         <repository>
-            <id>repobo-rel</id>
-            <name>repo.bukkit.org Releases</name>
-            <url>http://repo.bukkit.org/content/repositories/releases/</url>
+            <id>spigotmc-repo</id>
+            <name>hub.spigotmc.org/nexus/ Repository</name>
+            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
         <repository>
-            <id>comphenix-snapshots</id>
-            <name>Comphenix Maven Snapshots</name>
-            <url>http://repo.comphenix.net/content/repositories/snapshots/</url>
-        </repository>
-        <repository>
-            <id>comphenix-releases</id>
-            <name>Comphenix Maven Releases</name>
-            <url>http://repo.comphenix.net/content/repositories/releases/</url>
+            <id>shadowvolt-repo</id>
+            <url>http://ci.shadowvolt.com/plugin/repository/everything/</url>
         </repository>
     </repositories>
 
@@ -47,13 +41,13 @@
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
-            <version>3.3.1</version>
+            <version>3.6.3-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>1.6.2-R0.1</version>
+            <version>1.8.3-R0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
