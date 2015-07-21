@@ -133,7 +133,10 @@ public class iTag extends JavaPlugin implements Listener
         AsyncPlayerReceiveNameTagEvent newEvent = new AsyncPlayerReceiveNameTagEvent( destinationPlayer, namedPlayer, oldEvent.getTag(), UUID.fromString( builtUUID.toString() ) );
         getServer().getPluginManager().callEvent( newEvent );
 
-        return new WrappedGameProfile( newEvent.getUUID(), newEvent.getTag().substring( 0, Math.min( newEvent.getTag().length(), 16 ) ) );
+        WrappedGameProfile newProfile = new WrappedGameProfile( newEvent.getUUID(), newEvent.getTag().substring( 0, Math.min( newEvent.getTag().length(), 16 ) ) );
+        if (sent.getProperties().containsKey("textures"))
+        	newProfile.getProperties().putAll("textures", sent.getProperties().get("textures"));
+        return newProfile;
     }
 
     public void refreshPlayer(Player player)
